@@ -1,5 +1,7 @@
 # avatar-studio
 
+[![test](https://github.com/VinVirtual/avatar-studio/actions/workflows/test.yml/badge.svg)](https://github.com/VinVirtual/avatar-studio/actions/workflows/test.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ![Juno, a fictional drawn character, speaking beside a list of points](examples/juno/preview.webp)
 
 One illustrated portrait and a script in; a video of that character speaking the script out. Everything runs on your own machine: no paid video or voice service, and nothing is uploaded unless you choose `avatar head --source space --yes`, which **uploads the portrait to a third party** (the public Hunyuan3D-2 demo on Hugging Face, run by Tencent) to get a better head shape.
