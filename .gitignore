@@ -1,0 +1,9 @@
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+package-lock.json
+# per-project working files: the voice cache, timelines, renders and stills
+build/
+stills/
+out/

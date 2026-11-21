@@ -1,0 +1,12 @@
+{
+  "name": "avatar-studio",
+  "version": "0.1.0",
+  "description": "One illustrated portrait and a script in, a video of that character speaking out. Made on one machine.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "bin": { "avatar": "./engine/cli.mjs" },
+  "scripts": { "test": "node --test tests/*.test.mjs" },
+  "engines": { "node": ">=18" },
+  "devDependencies": { "three": "0.170.0" }
+}
