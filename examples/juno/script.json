@@ -1,0 +1,21 @@
+{
+  "format": "landscape",
+  "head": "head",
+  "character": { "name": "Juno", "role": "Example character, not a real person", "likeness": "original" },
+  "label": "Computer-generated character",
+  "title": { "kicker": "avatar-studio", "text": "Meet Juno", "sub": "A drawn character, voiced and animated on one computer.", "hold": 2.6 },
+  "panel": "How this video was made",
+  "lines": [
+    { "say": "Hi, I'm Juno. I'm a drawing, not a real person, and my voice is computer-generated." },
+    { "say": "This video started from one portrait and a short script.", "points": [{ "text": "One portrait, one script", "at": "portrait" }] },
+    { "say": "The portrait became a simple 3D head, and my mouth opens with the loudness of the voice.",
+      "points": [{ "text": "A 3D head from the drawing", "at": "head" }, { "text": "Mouth follows the voice's loudness", "at": "mouth" }] },
+    { "say": "Blinks and nods come from a seed, so every frame renders the *same* way each time.", "points": [{ "text": "The same frames on every run", "at": "frame" }] },
+    { "say": "Thanks for watching!" }
+  ],
+  "end": { "text": "One drawing, one script", "sub": "Made with avatar-studio and talking-head." },
+  "voice": "af_heart",
+  "speed": 1.0,
+  "captions": true,
+  "seed": 7
+}

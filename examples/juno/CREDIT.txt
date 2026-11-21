@@ -1,0 +1,10 @@
+Juno is an original, fictional cartoon character drawn for the talking-head skill (MIT, same author).
+She is not a real person and is not based on one.
+
+head/portrait.png, head/head.glb and head/head.json are unchanged copies of talking-head's
+examples/juno/portrait.png, examples/juno/out/head.glb and examples/juno/out/head.json.
+Her head was built with talking-head's offline shape (--source inflate).
+
+juno.mp4, poster.jpg, preview.webp and preview.gif were made from script.json with avatar-studio.
+The voice is Kokoro's "af_heart" voice, generated on the author's machine; it is not a recording of anyone.
+The character and the voice are computer-generated.
