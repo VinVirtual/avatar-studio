@@ -7,7 +7,7 @@ export const SCRIPT_FIELDS = ['format', 'head', 'character', 'label', 'title', '
   'pronounce', 'captions', 'captionWords', 'fps', 'seed', 'lead', 'gap', 'tail', 'mouth', 'poster']
 export const LINE_FIELDS = ['say', 'points', 'pause', 'voice', 'speed']
 export const LIKENESS = ['original', 'licensed', 'real-person-with-consent']
-export const LIMITS = { pointWords: 7, pointChars: 56, titleWords: 8, endWords: 8, lineWords: 45 }
+export const LIMITS = { pointWords: 7, pointChars: 56, titleWords: 8, endWords: 8, lineWords: 45, labelChars: 48, labelWarn: 36, nameChars: 40, roleChars: 64 }
 const LABEL_WORDS = /computer|generated|synthetic|\bai\b|animated|virtual/i
 
 const issue = (level, where, rule, message) => ({ level, where, rule, message })
@@ -55,10 +55,16 @@ function pointRules(script, out) {
   return count
 }
 
+/** a head folder inside the project: relative, no "..", no dot-folders */
+export function safeHeadPath(head) {
+  if (typeof head !== 'string' || !head || head.startsWith('/') || head.includes('\\') || /^[a-z]:/i.test(head)) return false
+  return head.split('/').every((part) => part && !part.startsWith('.'))
+}
+
 function likenessRules(script, out) {
   const c = script.character
-  if (!c || typeof c !== 'object') { out.push(issue('warn', 'character', 'likeness', 'say who the character is: "character": { "name", "role", "likeness": "original" }')); return }
-  if (!LIKENESS.includes(c.likeness)) out.push(issue('warn', 'character.likeness', 'likeness', `say where the face comes from: one of ${LIKENESS.join(', ')}`))
+  if (!c || typeof c !== 'object') { out.push(issue('error', 'character', 'likeness', 'say who the character is and where the face comes from: "character": { "name", "role", "likeness": "original" }')); return }
+  if (!LIKENESS.includes(c.likeness)) out.push(issue('error', 'character.likeness', 'likeness', `say where the face comes from: one of ${LIKENESS.join(', ')}`))
   if (c.likeness === 'real-person-with-consent' && c.consent !== true) out.push(issue('error', 'character.consent', 'consent', 'the picture shows a real person: set "consent": true only after that person has agreed to this use'))
 }
 
@@ -89,7 +95,9 @@ export function lintScript(script, { exists = () => true, format } = {}) {
     else if (countWords(v.text) > max) out.push(issue('warn', `${k}.text`, 'length', `"${v.text}" is long: keep it to ${max} words`))
   }
   if ('label' in script && (typeof script.label !== 'string' || !script.label.trim())) out.push(issue('error', 'label', 'label', 'the on-screen label cannot be turned off: it tells viewers the character is computer-generated'))
-  else if (typeof script.label === 'string' && !LABEL_WORDS.test(script.label)) out.push(issue('warn', 'label', 'label', `"${script.label}" should say plainly that the character is computer-generated`))
+  else if (typeof script.label === 'string' && script.label.length > LIMITS.labelChars) out.push(issue('error', 'label', 'label-length', `the label is ${script.label.length} characters; keep it to ${LIMITS.labelChars} so it fits on every frame (e.g. "Computer-generated character")`))
+  else if (typeof script.label === 'string' && script.label.length > LIMITS.labelWarn) out.push(issue('warn', 'label', 'label-length', `the label is ${script.label.length} characters: it will be drawn smaller or on two lines; shorter reads better`))
+  if (typeof script.label === 'string' && script.label.trim() && !LABEL_WORDS.test(script.label)) out.push(issue('warn', 'label', 'label', `"${script.label}" should say plainly that the character is computer-generated`))
   likenessRules(script, out)
   colorRules(script.colors, out)
   if (script.speed !== undefined && !(script.speed >= 0.5 && script.speed <= 2)) out.push(issue('error', 'speed', 'speed', 'speed must be between 0.5 and 2'))
@@ -97,7 +105,11 @@ export function lintScript(script, { exists = () => true, format } = {}) {
   if (script.fps !== undefined && ![24, 25, 30, 60].includes(script.fps)) out.push(issue('error', 'fps', 'fps', 'fps must be 24, 25, 30 or 60'))
   if (script.seed !== undefined && !Number.isInteger(script.seed)) out.push(issue('error', 'seed', 'seed', 'seed must be a whole number'))
   for (const k of Object.keys(script.pronounce || {})) { try { new RegExp(k) } catch (e) { out.push(issue('error', `pronounce["${k}"]`, 'pronounce', `not a valid pattern: ${e.message}`)) } }
-  const head = script.head || 'head'
+  const c = script.character && typeof script.character === 'object' ? script.character : {}
+  if (typeof c.name === 'string' && c.name.length > LIMITS.nameChars) out.push(issue('warn', 'character.name', 'strap-length', `the name is long for the name strap: keep it to ${LIMITS.nameChars} characters`))
+  if (typeof c.role === 'string' && c.role.length > LIMITS.roleChars) out.push(issue('warn', 'character.role', 'strap-length', `the role is long for the name strap: keep it to ${LIMITS.roleChars} characters`))
+  const head = script.head ?? 'head'
+  if (!safeHeadPath(head)) { out.push(issue('error', 'head', 'head-path', `"head": ${JSON.stringify(head)} must be a folder inside the project (relative, no "..")`)); return out }
   for (const f of ['head.glb', 'head.json']) if (!exists(`${head}/${f}`)) out.push(issue('error', 'head', 'head-files', `${head}/${f} is missing: run "avatar head <project>" or copy a built head there`))
   return out
 }

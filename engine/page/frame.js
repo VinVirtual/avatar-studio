@@ -185,8 +185,23 @@ function drawLowerThird(ctx, t, aside) {
   ctx.shadowColor = rgba(C.ink, 0.25); ctx.shadowBlur = 24; ctx.shadowOffsetY = 10
   ctx.fillStyle = C.ink; roundRect(ctx, r.x, r.y, r.w, r.h, 10); ctx.fill(); ctx.shadowColor = 'transparent'
   ctx.fillStyle = C.accent; ctx.fillRect(r.x, r.y, 10, r.h)
-  ctx.fillStyle = C.card; ctx.font = font(620, r.h * 0.34); ctx.fillText(X.name, r.x + 36, r.y + r.h * 0.48)
-  if (X.role) { ctx.fillStyle = rgba(C.card, 0.72); ctx.font = font(420, r.h * 0.22); ctx.fillText(X.role, r.x + 36, r.y + r.h * 0.8) }
+  const room = r.w - 60
+  /** shrink to fit; if even the smallest size is too wide, report it and cut the text with an ellipsis */
+  const fitted = (text, weight, size, what) => {
+    const ok = fitSize(ctx, text, weight, size, room)
+    if (ok !== null) return { text, size: ok }
+    problem(`name strap: "${text}" does not fit; shorten ${what}`)
+    ctx.font = font(weight, size * 0.7)
+    let cut = text
+    while (cut.length > 1 && ctx.measureText(cut + '…').width > room) cut = cut.slice(0, -1)
+    return { text: cut.trimEnd() + '…', size: size * 0.7 }
+  }
+  const name = fitted(X.name, 620, r.h * 0.34, 'character.name')
+  ctx.fillStyle = C.card; ctx.font = font(620, name.size); ctx.fillText(name.text, r.x + 36, r.y + r.h * 0.48)
+  if (X.role) {
+    const role = fitted(X.role, 420, r.h * 0.22, 'character.role')
+    ctx.fillStyle = rgba(C.card, 0.72); ctx.font = font(420, role.size); ctx.fillText(role.text, r.x + 36, r.y + r.h * 0.8)
+  }
   ctx.restore()
 }
 
@@ -223,14 +238,30 @@ function drawCaptions(ctx, t, cx) {
   ctx.restore()
 }
 
+/** the largest size from `size` down to `least` of it at which `text` is at most `maxW` wide, or null */
+function fitSize(ctx, text, weight, size, maxW, least = 0.7) {
+  for (let s = size; s >= size * least; s -= 1) { ctx.font = font(weight, s); if (ctx.measureText(text).width <= maxW) return s }
+  return null
+}
+
+/** the computer-generated label: shrinks to fit the frame, then wraps onto two lines; never cut off silently */
 function drawLabel(ctx) {
-  const { plan, L, C } = S, size = L.type.label
+  const { plan, L, C } = S, size0 = L.type.label, room = L.W - 2 * L.margin
+  let size = fitSize(ctx, plan.label, 560, size0, room - size0 * 2.6), rows = [plan.label]
+  if (size === null) {
+    size = Math.round(size0 * 0.8); ctx.font = font(560, size)
+    rows = lines(ctx, plan.label, room - size * 2.6, 2, 'label')
+    if (rows.length > 2) rows = rows.slice(0, 2) // reported by lines(); lint also limits the length
+  }
   ctx.font = font(560, size)
-  const w = ctx.measureText(plan.label).width + size * 2.6, h = size * 2, x = L.margin, y = L.margin * 0.62
-  ctx.fillStyle = rgba(C.card, 0.9); roundRect(ctx, x, y, w, h, h / 2); ctx.fill()
+  const lineH = size * 1.3, w = Math.max(...rows.map((r) => ctx.measureText(r).width)) + size * 2.6, h = size * 0.7 + lineH * rows.length
+  const x = L.margin, y = L.margin * 0.62
+  ctx.fillStyle = rgba(C.card, 0.9); roundRect(ctx, x, y, w, h, Math.min(h / 2, size)); ctx.fill()
   ctx.strokeStyle = rgba(C.ink, 0.18); ctx.lineWidth = 1.5; ctx.stroke()
-  ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(x + size * 1.05, y + h / 2, size * 0.28, 0, Math.PI * 2); ctx.fill()
-  ctx.fillStyle = C.ink; ctx.textBaseline = 'middle'; ctx.fillText(plan.label, x + size * 1.75, y + h / 2 + 1); ctx.textBaseline = 'alphabetic'
+  ctx.fillStyle = C.accent; ctx.beginPath(); ctx.arc(x + size * 1.05, y + size * 0.35 + lineH / 2, size * 0.28, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = C.ink; ctx.textBaseline = 'middle'
+  rows.forEach((r, i) => ctx.fillText(r, x + size * 1.75, y + size * 0.35 + lineH * (i + 0.5) + 1))
+  ctx.textBaseline = 'alphabetic'
 }
 
 /** draws the frame at t on the output canvas; returns the pose used */

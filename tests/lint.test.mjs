@@ -32,7 +32,8 @@ test('the computer-generated label cannot be removed', () => {
 test('a real person needs recorded consent', () => {
   assert.ok(rules({ ...good, character: { name: 'X', likeness: 'real-person-with-consent' } }).includes('error:consent'))
   assert.deepEqual(rules({ ...good, character: { name: 'X', likeness: 'real-person-with-consent', consent: true } }), [])
-  assert.ok(rules({ ...good, character: undefined }).includes('warn:likeness'))
+  assert.ok(rules({ ...good, character: undefined }).includes('error:likeness'))
+  assert.ok(rules({ ...good, character: { name: 'X' } }).includes('error:likeness'))
 })
 
 test('colours: bad values and low contrast', () => {
@@ -59,4 +60,20 @@ test('unknown fields, long points and odd emphasis marks are warnings', () => {
 test('head files are checked through the given exists function', () => {
   assert.ok(rules(good, { exists: () => false }).includes('error:head-files'))
   assert.equal(formatIssues([]), 'no problems found')
+})
+
+test('the label must fit: long labels are an error, longish ones a warning', () => {
+  assert.ok(rules({ ...good, label: 'Computer-generated character, not a real person, voice made by a text-to-speech model' }).includes('error:label-length'))
+  assert.ok(rules({ ...good, label: 'Computer-generated character, not a real person' }).includes('warn:label-length'))
+  assert.ok(!rules({ ...good, label: 'Computer-generated character' }).some((r) => r.includes('label')))
+})
+
+test('name strap text that will not fit is a warning', () => {
+  assert.ok(rules({ ...good, character: { ...good.character, name: 'N'.repeat(50) } }).includes('warn:strap-length'))
+  assert.ok(rules({ ...good, character: { ...good.character, role: 'r'.repeat(80) } }).includes('warn:strap-length'))
+})
+
+test('a head folder outside the project is an error', () => {
+  for (const head of ['../other', '/abs/head', 'a/../b', '.hidden']) assert.ok(rules({ ...good, head }).includes('error:head-path'), head)
+  assert.deepEqual(rules({ ...good, head: 'assets/head' }), [])
 })
