@@ -104,6 +104,37 @@ export function nodTimes(timeline, loudness, fps, gap = 1.2) {
   return out
 }
 
+/** Everything in the script that changes the voice or the timing (gen_audio.py stores the same object in the timeline). */
+export function audioInputs(script) {
+  const obj = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null), v = (x) => (x === undefined ? null : x)
+  const t = obj(script.title), e = obj(script.end)
+  return {
+    lines: (Array.isArray(script.lines) ? script.lines : []).map((l) => ({ say: v(l?.say), pause: v(l?.pause), voice: v(l?.voice), speed: v(l?.speed) })),
+    voice: v(script.voice), speed: v(script.speed), lang: v(script.lang), pronounce: v(script.pronounce),
+    fps: v(script.fps), lead: v(script.lead), gap: v(script.gap), tail: v(script.tail),
+    title: t ? { hold: v(t.hold) } : null, end: e ? { hold: v(e.hold) } : null,
+  }
+}
+
+/** structural equality of JSON values (numbers compared as numbers, key order ignored) */
+export function sameJson(a, b) {
+  if (a === b) return true
+  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null || Array.isArray(a) !== Array.isArray(b)) return false
+  const ka = Object.keys(a), kb = Object.keys(b)
+  return ka.length === kb.length && ka.every((k) => Object.hasOwn(b, k) && sameJson(a[k], b[k]))
+}
+
+/** Problems with using `timeline` for `script`: { stale: [fields that changed since the voice was made], warnings: [...] } */
+export function timelineCheck(script, timeline) {
+  const now = audioInputs(script), then = timeline?.inputs
+  const stale = !then ? ['version'] : Object.keys(now).filter((k) => !sameJson(now[k], then[k]))
+  const warnings = []
+  if (script.title?.text && !(timeline?.titleEnd > 0)) warnings.push('the script has a title but the voice was made without one: the title will not show')
+  if (script.end?.text && timeline?.endStart == null) warnings.push('the script has an end card but the voice was made without one: the end card and its computer-generated note will not show')
+  if (timeline && timeline.timing !== 'model') warnings.push(`word times were ${timeline.timing === 'mixed' ? 'partly ' : ''}estimated, not measured from the voice model: points, captions and nods may land a little early or late`)
+  return { stale, warnings }
+}
+
 /** the moments worth one frame each on the review sheet */
 export function beats(plan) {
   const out = []
@@ -114,6 +145,7 @@ export function beats(plan) {
     for (let f = a; f <= b && f < plan.mouth.length; f++) if (plan.mouth[f] > plan.mouth[best]) best = f
     out.push({ t: +(best / plan.fps).toFixed(2), label: `line ${i + 1}, mouth open` })
   })
+  if (plan.lowerThird) out.push({ t: +Math.min(plan.lowerThird.to - 0.5, plan.lowerThird.from + 1.2).toFixed(2), label: 'name strap' })
   if (plan.panel) plan.panel.points.forEach((p, i) => out.push({ t: +(p.t + 0.8).toFixed(2), label: `point ${i + 1}` }))
   const blink = plan.motion.blinks.find((b) => !plan.title || b.at > plan.title.to)
   if (blink) out.push({ t: +(blink.at + blink.length * 0.4).toFixed(2), label: 'blink' })

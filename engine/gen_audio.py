@@ -32,6 +32,7 @@ except ImportError as e:
     die(f"{e}. Install the voice packages into this Python: pip install kokoro-onnx soundfile numpy")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from audio_inputs import audio_inputs  # noqa: E402
 P = Path(sys.argv[1]).resolve()
 SCRIPT = P / "script.json"
 if not SCRIPT.is_file(): die(f"file not found: {SCRIPT}")
@@ -231,7 +232,7 @@ for i in range(frames):
 TIMING = "model" if not counted["estimate"] else "estimate" if not counted["model"] else "mixed"
 TIMELINE = {"version": 1, "total": total, "fps": FPS, "timing": TIMING, "titleEnd": round(title_end, 3),
             "voiceEnd": round(voice_end, 3), "endStart": end_start, "lines": lines, "loudness": loud,
-            "source": hashlib.sha1(SCRIPT.read_bytes()).hexdigest()}
+            "source": hashlib.sha1(SCRIPT.read_bytes()).hexdigest(), "inputs": audio_inputs(S)}
 (OUT / "timeline.json").write_text(json.dumps(TIMELINE), encoding="utf-8")
 print("word times:", {"model": "from the model's phoneme durations", "estimate": "estimated from syllable counts", "mixed": f"from the model for {counted['model']} phrase(s), estimated for {counted['estimate']}"}[TIMING]
       + (f"  ({'; '.join(sorted(WHY_ESTIMATED))})" if WHY_ESTIMATED else ""))

@@ -1,7 +1,8 @@
 // A project folder: script.json, head/ (head.glb, head.json), build/ (voice and timeline), stills/ and out/.
-import { readFileSync, existsSync, statSync } from 'node:fs'
-import { join, resolve, basename } from 'node:path'
-import { makePlan, lineWords } from './plan.mjs'
+import { readFileSync, existsSync, statSync, realpathSync } from 'node:fs'
+import { join, resolve, basename, sep } from 'node:path'
+import { safeHeadPath } from './lint.mjs'
+import { makePlan, timelineCheck } from './plan.mjs'
 import { FORMAT_NAMES } from './layout.mjs'
 
 export function projectDir(dir) {
@@ -19,30 +20,37 @@ export function readJson(path, what = path) {
 }
 
 export const loadScript = (P) => readJson(join(P, 'script.json'), 'script.json')
-export const headDir = (script) => script.head || 'head'
-
-/** the words of every line in the script and in the timeline agree (else the voice is out of date) */
-export function timelineMatches(script, timeline) {
-  if (!Array.isArray(timeline.lines) || timeline.lines.length !== script.lines.length) return false
-  return script.lines.every((l, i) => lineWords(l.say).join(' ') === timeline.lines[i].words.map((w) => w.w).join(' '))
+/** the head folder named by the script, refused unless it is a folder inside the project */
+export function headDir(script, P) {
+  const head = script.head ?? 'head'
+  if (!safeHeadPath(head)) throw new Error(`"head": ${JSON.stringify(head)} must be a folder inside the project (relative, no "..")`)
+  if (P && existsSync(join(P, head))) {
+    const root = realpathSync(P), real = realpathSync(join(P, head))
+    if (!real.startsWith(root + sep)) throw new Error(`"head": ${head} leads outside the project (a link?)`)
+  }
+  return head
 }
 
-export function loadTimeline(P, script) {
+/** the timeline made by "avatar audio", refused when anything that shapes the voice or timing changed since */
+export function loadTimeline(P, script, warn = () => {}) {
   const path = join(P, 'build', 'timeline.json')
   if (!existsSync(path)) throw new Error(`no voice yet. Run: avatar audio ${P}`)
   const tl = readJson(path, 'build/timeline.json')
-  if (!timelineMatches(script, tl)) throw new Error(`the script's lines changed since the voice was made. Run: avatar audio ${P}`)
+  const { stale, warnings } = timelineCheck(script, tl)
+  if (stale.includes('version')) throw new Error(`the voice was made by an older version of avatar-studio. Run: avatar audio ${P}`)
+  if (stale.length) throw new Error(`the voice is out of date: ${stale.join(', ')} changed in script.json since it was made. Run: avatar audio ${P}`)
+  warnings.forEach((w) => warn('warning: ' + w))
   return tl
 }
 
 /** the plan for a render, and the file name it uses ("<project>" or "<project>-<format>") */
-export function loadPlan(P, flags = {}) {
-  const script = loadScript(P)
+export function loadPlan(P, flags = {}, warn = () => {}) {
+  const script = loadScript(P), head = headDir(script, P)
   if (flags.format === true || (flags.format && !FORMAT_NAMES.includes(flags.format))) throw new Error(`--format needs one of: ${FORMAT_NAMES.join(', ')}`)
-  const surface = readJson(join(P, headDir(script), 'head.json'), `${headDir(script)}/head.json`)
-  const plan = makePlan(script, loadTimeline(P, script), { format: flags.format, captions: flags.captions === false ? false : undefined, surface })
+  const surface = readJson(join(P, head, 'head.json'), `${head}/head.json`)
+  const plan = makePlan(script, loadTimeline(P, script, warn), { format: flags.format, captions: flags.captions === false ? false : undefined, surface })
   if (Number.isFinite(script.poster)) plan.poster = script.poster
-  return { script, plan, head: headDir(script), outName: basename(P) + (flags.format ? `-${flags.format}` : '') }
+  return { script, plan, head, outName: basename(P) + (flags.format ? `-${flags.format}` : '') }
 }
 
 /** --flag value, --flag, --no-flag; everything else is positional */
