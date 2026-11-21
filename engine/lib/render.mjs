@@ -23,6 +23,9 @@ export function ffmpeg(args, { input, capture = false } = {}) {
 // BT.709 in limited range, tagged, so browsers and phones show the colours as drawn (from reel-studio)
 const COLOUR = 'scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int+bicubic,format=yuv420p,setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709:range=tv'
 
+/** speech loudness for web and phone playback (EBU R128 measure, -16 LUFS, peaks at most -1.5 dBTP) */
+export const LOUDNESS = 'loudnorm=I=-16:TP=-1.5:LRA=11'
+
 export async function renderStills({ P, plan, head, outName, times, log }) {
   const dir = join(P, 'stills'); mkdirSync(dir, { recursive: true })
   const stage = await openStage({ P, plan, head, log })
@@ -63,7 +66,7 @@ export async function renderVideo({ P, plan, head, outName, workers = 2, log }) 
   try {
     const FF = findFF()
     const ff = spawn(FF, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(plan.fps), '-c:v', 'mjpeg', '-i', '-', '-i', voice,
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-vf', COLOUR, '-profile:v', 'high', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] })
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-vf', COLOUR, '-profile:v', 'high', '-af', LOUDNESS, '-ar', '48000', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] })
     let dead = null
     const closed = new Promise((r) => ff.on('close', (code) => { if (code) dead = new Error('ffmpeg exited with code ' + code); r() }))
     ff.on('error', (e) => { dead = new Error(`could not start ffmpeg (${FF}): ${e.message}`) })
