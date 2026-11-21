@@ -171,15 +171,15 @@ function drawEnd(ctx, t) {
   ctx.font = font(400, ty.end, DISPLAY); ctx.fillStyle = C.ink
   for (const l of head) { y += ty.end * 0.95; ctx.fillText(l, s.x - 3, y); y += ty.end * 0.05 }
   if (sub.length) { y += ty.sub * 0.6; ctx.font = font(400, ty.sub); ctx.fillStyle = C.soft; for (const l of sub) { y += ty.sub * 1.35; ctx.fillText(l, s.x, y) } }
-  y += ty.kicker * 2.6; ctx.font = font(500, ty.sub * 0.72); ctx.fillStyle = C.soft
-  ctx.fillText('The character and the voice are computer-generated.', s.x, y)
+  ctx.font = font(500, ty.sub * 0.72); ctx.fillStyle = C.soft; y += ty.kicker * 1.4
+  for (const l of lines(ctx, 'The character and the voice are computer-generated.', s.w, 2, 'end card note')) { y += ty.sub * 0.95; ctx.fillText(l, s.x, y) }
   ctx.restore()
 }
 
-function drawLowerThird(ctx, t) {
+function drawLowerThird(ctx, t, aside) {
   const { plan, L, C } = S, X = plan.lowerThird
-  if (!X || t < X.from || t > X.to) return
-  const a = fade(t, X.from, X.to, 0.5, 0.35), r = L.lowerThird
+  if (!X || t < X.from || t > X.to || aside >= 1) return
+  const a = fade(t, X.from, X.to, 0.5, 0.35) * (1 - aside), r = L.lowerThird // it gives way when the head moves aside
   ctx.save()
   ctx.beginPath(); ctx.rect(r.x - 10, r.y - 10, (r.w + 20) * a, r.h + 20); ctx.clip()
   ctx.shadowColor = rgba(C.ink, 0.25); ctx.shadowBlur = 24; ctx.shadowOffsetY = 10
@@ -243,7 +243,7 @@ export function renderAt(t) {
   background(ctx, box)
   drawHead(ctx, box, pose, t)
   drawTitle(ctx, t); drawPanel(ctx, t); drawEnd(ctx, t)
-  drawLowerThird(ctx, t); drawCaptions(ctx, t, box.cx); drawLabel(ctx)
+  drawLowerThird(ctx, t, aside); drawCaptions(ctx, t, box.cx); drawLabel(ctx)
   return pose
 }
 
