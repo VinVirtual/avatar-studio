@@ -1,0 +1,17 @@
+{
+  "format": "landscape",
+  "head": "head",
+  "character": { "name": "Your character", "role": "What they do", "likeness": "original" },
+  "label": "Computer-generated character",
+  "title": { "kicker": "Short kicker", "text": "A title of a few words", "sub": "One line that says what this is about.", "hold": 2.6 },
+  "panel": "Three things",
+  "lines": [
+    { "say": "Hello! I am a drawing that can talk." },
+    { "say": "Points appear on the side when I say the word they hang on.", "points": [{ "text": "Points appear on a word", "at": "side" }] },
+    { "say": "Mark a word like *this* and I nod on it.", "points": [{ "text": "Nods on stressed words", "at": "nod" }] }
+  ],
+  "end": { "text": "Thanks for watching", "sub": "Made on one machine." },
+  "voice": "af_heart",
+  "speed": 1.0,
+  "captions": true
+}
