@@ -139,13 +139,14 @@ const COMMANDS = {
     if (!th) throw new Error(talkingHeadHint())
     const picture = PICTURES.map((e) => join(P, `portrait${e}`)).find(existsSync)
     if (!picture) throw new Error(`no portrait.png or portrait.jpg in ${P}. Start with: avatar new ${P} --portrait FILE`)
-    if (flags.source === 'space' && !flags.yes) throw new Error('--source space UPLOADS the picture to a public Hugging Face Space. Ask the user first; add --yes once they agreed.')
+    if (flags.source === 'space' && !flags.yes) throw new Error('--source space UPLOADS the picture to a public Hugging Face Space. Ask the user first; add --yes once they agreed (it is passed on to talking-head as --yes-upload).')
     const H = join(th, 'head'), work = join(P, 'build', 'head')
     const step = (args) => { say(`$ head ${args.join(' ')}`); if (sh(H, args)) throw new Error(`talking-head failed at "head ${args[0]}". Fix it there (see its SKILL.md), then run avatar head again.`) }
     step(['new', work, picture])
     if (typeof flags.marks === 'string') step(['mark', work, '--set', resolve(flags.marks)])
     else if (!existsSync(join(work, 'marks.json'))) step(['mark', work, '--auto'])
-    step(['shape', work, ...(typeof flags.mesh === 'string' ? ['--mesh', resolve(flags.mesh)] : ['--source', typeof flags.source === 'string' ? flags.source : 'inflate'])])
+    const source = typeof flags.source === 'string' ? flags.source : 'inflate'
+    step(['shape', work, ...(typeof flags.mesh === 'string' ? ['--mesh', resolve(flags.mesh)] : ['--source', source, ...(source === 'space' ? ['--yes-upload'] : [])])])
     step(['build', work])
     step(['preview', work])
     copyHead(join(work, 'out'), join(P, headDir(loadScript(P))))
@@ -177,8 +178,9 @@ const COMMANDS = {
     const P = projectDir(rest[0]), issues = lint(P, flags)
     say(formatIssues(issues))
     if (issues.some((i) => i.level === 'error')) throw new Error('fix the errors above first')
+    // the voice is remade whenever script.json changed since it was made (unchanged phrases come from the cache)
     let fresh = false
-    try { loadPlan(P, flags); fresh = true } catch {}
+    try { fresh = readJson(join(P, 'build', 'timeline.json')).source === sha(join(P, 'script.json')) } catch {}
     if (!fresh) await audio(P)
     const { plan, head, outName } = loadPlan(P, flags)
     const sheet = await renderSheet({ P, plan, head, outName, log: note })
