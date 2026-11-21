@@ -1,6 +1,6 @@
 # script.json
 
-One file per project. Everything is optional except `lines`. `avatar lint <dir>` checks it.
+One file per project. Everything is optional except `lines` and `character.likeness`. `avatar lint <dir>` checks it, and `sheet`, `stills`, `video` and `build` refuse to render while it reports errors.
 
 ```json
 {
@@ -30,9 +30,9 @@ One file per project. Everything is optional except `lines`. `avatar lint <dir>`
 | Field | Meaning |
 |---|---|
 | `format` | `landscape` (1920x1080), `vertical` (1080x1920) or `square` (1080x1080). `--format` overrides it for one run. |
-| `head` | folder (inside the project) holding `head.glb` and `head.json` from talking-head. Default `head`. |
-| `character` | `name` and `role` fill the name strap. `likeness`: `original` (invented), `licensed`, or `real-person-with-consent` (then `"consent": true` is required, and only after the person agreed). |
-| `label` | the on-screen note on every frame. It cannot be empty and should say the character is computer-generated. |
+| `head` | folder inside the project (relative, no `..`, not a link to elsewhere) holding `head.glb` and `head.json` from talking-head. Default `head`. |
+| `character` | **required** `likeness`, your declaration of where the face comes from: `original` (invented), `licensed`, or `real-person-with-consent` (then `"consent": true` is required too, set only after the person agreed). `name` (up to 40 characters) and `role` (up to 64) fill the name strap; longer text is shrunk, then cut with "…" and reported. |
+| `label` | the on-screen note on every frame. It cannot be empty, must be at most 48 characters (it is shrunk or wrapped to fit the frame), and should say the character is computer-generated. |
 | `title` | a title card at the start, beside the character, before the first line. `hold` is its length in seconds (default 2.6). |
 | `panel` | the heading of the side panel. The panel opens with the first point and stays until the end card. |
 | `lines[].say` | words to speak. Punctuation makes pauses and caption breaks. `*word*` marks a stressed word: the head nods on it (lines with no mark nod on their loudest long word). |

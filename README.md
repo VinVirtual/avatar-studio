@@ -2,7 +2,7 @@
 
 ![Juno, a fictional drawn character, speaking beside a list of points](examples/juno/preview.webp)
 
-One illustrated portrait and a script in; a video of that character speaking the script out. Everything runs on your own machine: no paid video or voice service, nothing uploaded.
+One illustrated portrait and a script in; a video of that character speaking the script out. Everything runs on your own machine: no paid video or voice service, and nothing is uploaded unless you choose `avatar head --source space --yes`, which **uploads the portrait to a third party** (the public Hunyuan3D-2 demo on Hugging Face, run by Tencent) to get a better head shape.
 
 It is a [Claude Code](https://claude.com/claude-code) skill (the assistant reads `SKILL.md`) and a plain command line (`avatar`) you can run yourself. **Tested on Linux only.**
 
@@ -21,7 +21,7 @@ After rendering, `avatar video` decodes the sound back out of the finished MP4 a
 
 ## Use it responsibly
 
-- **Faces.** Use an invented character, or a picture of someone who has agreed to this use. Do not make videos of public figures or of people who have not consented. The script records this in `character.likeness`; lint warns when it is missing and refuses a real person's picture without `"consent": true`.
+- **Faces.** Use an invented character, or a picture of someone who has agreed to this use. Do not make videos of public figures or of people who have not consented. avatar-studio cannot tell who a picture shows: the script must *declare* it in `character.likeness` (`original`, `licensed` or `real-person-with-consent`). Lint runs before every render (`sheet`, `stills`, `video`, `build`) and refuses a script with no declaration, and refuses `real-person-with-consent` unless `"consent": true` is set too. Both are your own statements; the tool cannot verify them.
 - **Words.** Never make a character impersonate a real person or present lines as a real person's words, quotes or endorsements.
 - **Labelling.** Keep the on-screen label, and say the video is computer-generated wherever you post it (caption, description, page text). Follow each platform's rules for synthetic media.
 - **Claims.** The character says everything confidently. Check every factual claim in the script before you publish. The skill tells the assistant to list them for you to confirm.
@@ -46,7 +46,7 @@ After rendering, `avatar video` decodes the sound back out of the finished MP4 a
 | [three.js](https://www.npmjs.com/package/three) 0.170 | talking-head's viewer is built on it | MIT |
 | [playwright-core](https://www.npmjs.com/package/playwright-core) | drives the browser | Apache-2.0 |
 | Google Chrome or Chromium | draws the frames (WebGL) | Chrome: Google's terms; Chromium: BSD-3-Clause and others |
-| Python 3.10 to 3.13 with [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx), soundfile, numpy | speaks the script | MIT, BSD-3-Clause, BSD-3-Clause |
+| Python 3.10 to 3.13 with [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) 0.6 or newer, soundfile, numpy | speaks the script | MIT, BSD-3-Clause, BSD-3-Clause |
 | Kokoro model files `kokoro-v1.0.onnx`, `voices-v1.0.bin` (about 340 MB) | the voice model | Apache-2.0 (model card) |
 | ffmpeg (or the `imageio-ffmpeg` Python package, which ships one) | encodes the video | LGPL/GPL, depending on the build |
 
@@ -70,13 +70,13 @@ Checked on 21 November 2026 against each package's own metadata or project page.
 
 ```bash
 # 1. the two skills
-git clone <this repository> ~/.claude/skills/avatar-studio
-git clone <talking-head's repository> ~/.claude/skills/talking-head     # or set TALKING_HEAD_DIR=/path/to/talking-head
+git clone https://github.com/VinVirtual/avatar-studio ~/.claude/skills/avatar-studio
+git clone https://github.com/VinVirtual/talking-head ~/.claude/skills/talking-head     # or set TALKING_HEAD_DIR=/path/to/talking-head
 cd ~/.claude/skills/avatar-studio && npm install                          # three.js for the render page
 
 # 2. the voice
 python3 -m venv ~/kokoro/.venv
-~/kokoro/.venv/bin/pip install kokoro-onnx soundfile numpy imageio-ffmpeg
+~/kokoro/.venv/bin/pip install "kokoro-onnx>=0.6" soundfile numpy imageio-ffmpeg   # 0.6+ gives measured word times
 curl -L -o ~/kokoro/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/kokoro-v1.0.onnx
 curl -L -o ~/kokoro/voices-v1.0.bin  https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.1/voices-v1.0.bin
 
@@ -108,8 +108,9 @@ $A/avatar video my-video --web    # my-video/out/my-video.mp4, .vtt, .srt and ou
 |---|---|
 | `avatar check` | checks talking-head, three.js, Kokoro, ffmpeg, Playwright and that the browser has WebGL |
 | `avatar new <dir> [--portrait FILE \| --head DIR]` | starts a project: `script.json`, and the portrait or a copy of an existing head |
-| `avatar lint <dir> [--format f] [--json]` | checks the script: points on real words, panel capacity, label, consent, colours and contrast, voice settings, head files |
-| `avatar head <dir> [--source inflate\|space --yes] [--mesh FILE] [--marks FILE]` | builds `head/head.glb` and `head/head.json` from the portrait with talking-head |
+| `avatar lint <dir> [--format f] [--json]` | checks the script: likeness declared, consent for a real person, the label present and short enough, points on real words, panel capacity, colours and contrast, voice settings, the head folder inside the project. `sheet`, `stills`, `video` and `build` run it first and stop on errors |
+| `avatar head <dir> [--mesh FILE] [--marks FILE] [--force]` | builds `head/head.glb` and `head/head.json` from the portrait with talking-head, offline. If the portrait changed since its marks were made it stops; `--force` estimates new marks |
+| `avatar head <dir> --source space --yes` | the same, but **uploads the portrait to a third party** (the public Hunyuan3D-2 demo on Hugging Face, run by Tencent) for a better shape. Only with the agreement of whoever owns the picture; see talking-head's README for that model's licence limits |
 | `avatar audio <dir>` | voice (`build/voice.wav`), word times and per-frame loudness (`build/timeline.json`) |
 | `avatar sheet <dir> [--format f]` | `stills/<name>-sheet.png`: one frame per beat (title, each line at its widest mouth, each point, a blink, the end card) |
 | `avatar stills <dir> 1.5 4 9 [--format f]` | single frames at those seconds |
