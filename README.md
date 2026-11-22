@@ -129,4 +129,4 @@ $A/avatar video my-video --web    # my-video/out/my-video.mp4, .vtt, .srt and ou
 | Mouth | dB below a 90th-percentile reference, mapped to 0 to 0.92, faster to open than to close, one frame early | the same frames: `0.83 0.56 0.36 0.58 0.73 0.71` |
 | Frame | `poseAt(t)` = sway + blinks + nods + glances, drawn with `renderPose`, composited, piped to ffmpeg | at 10.285 s, glancing at the new point: `{ yaw: 0.23, pitch: -0.003, eyes: 0, mouth: 0.72 }` |
 
-The 52 unit tests in `tests/` (`avatar test`) cover the loudness-to-mouth mapping, blink determinism, layout maths, lint rules, the timeline-to-plan mapping and the render server's path checks.
+The 70 unit tests in `tests/` (`avatar test`) cover the loudness-to-mouth mapping, blink determinism, layout maths, lint rules, the timeline-to-plan mapping, the render server's path checks, and that Python probes and Playwright never load code from the current folder.

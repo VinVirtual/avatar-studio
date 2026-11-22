@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { readdirSync, existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve, extname, basename } from 'node:path'
 import { createHash } from 'node:crypto'
-import { ENGINE, SKILL, findPython, findFF, findPlaywright, findTalkingHead, talkingHeadHint, findThree, launchBrowser, KOKORO_HOME } from './lib/env.mjs'
+import { ENGINE, SKILL, findPython, pythonProbe, findFF, findPlaywright, findTalkingHead, talkingHeadHint, findThree, launchBrowser, KOKORO_HOME } from './lib/env.mjs'
 import { projectDir, loadScript, loadPlan, headDir, parseArgs, readJson } from './lib/project.mjs'
 import { lintScript, formatIssues } from './lib/lint.mjs'
 import { timelineCheck } from './lib/plan.mjs'
@@ -100,9 +100,9 @@ const COMMANDS = {
     line(!!th, `talking-head ${th ? `(${th})` : ''}`, talkingHeadHint())
     const three = findThree(th)
     line(!!three, `three.js ${three ? `(${three})` : ''}`, `npm install   (in ${SKILL}), or set AVATAR_THREE to a three.js folder`)
-    const py = findPython()
-    line(spawnSync(py, ['-c', 'import kokoro_onnx, soundfile, numpy']).status === 0, `python with kokoro-onnx (${py})`, `pip install "kokoro-onnx>=0.6" soundfile numpy imageio-ffmpeg   (or set AVATAR_PYTHON)`)
-    line(spawnSync(py, ['-c', 'from kokoro_onnx import Kokoro; assert hasattr(Kokoro, "create_timed")']).status === 0, 'kokoro-onnx 0.6 or newer (measured word times)', `pip install -U "kokoro-onnx>=0.6"   (older versions work, with estimated word times)`, false)
+    const py = findPython(), probes = (code) => { try { pythonProbe(code, py); return true } catch { return false } }
+    line(probes('import kokoro_onnx, soundfile, numpy'), `python with kokoro-onnx (${py})`, `pip install "kokoro-onnx>=0.6" soundfile numpy imageio-ffmpeg   (or set AVATAR_PYTHON)`)
+    line(probes('from kokoro_onnx import Kokoro; assert hasattr(Kokoro, "create_timed")'), 'kokoro-onnx 0.6 or newer (measured word times)', `pip install -U "kokoro-onnx>=0.6"   (older versions work, with estimated word times)`, false)
     const model = process.env.KOKORO_MODEL || join(KOKORO_HOME, 'kokoro-v1.0.onnx'), voices = process.env.KOKORO_VOICES || join(KOKORO_HOME, 'voices-v1.0.bin')
     line(existsSync(model) && existsSync(voices), `Kokoro model files (${KOKORO_HOME})`, 'download kokoro-v1.0.onnx and voices-v1.0.bin (README, "Install"), or set KOKORO_HOME')
     let ff = null; try { ff = findFF() } catch {}
